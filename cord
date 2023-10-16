@@ -1,0 +1,50 @@
+let src = cv.imread('canvasInput');
+let dst = cv.Mat.zeros(src.rows, src.cols, cv.CV_8UC3);
+cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
+cv.threshold(src, src, 120, 200, cv.THRESH_BINARY);
+let contours = new cv.MatVector();
+let hierarchy = new cv.Mat();
+cv.findContours(src, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
+
+// Iterate through each contour and classify shapes
+for (let i = 0; i < contours.size(); ++i) {
+    let contour = contours.get(i);
+    let peri = cv.arcLength(contour, true);
+    let approx = new cv.Mat();
+    cv.approxPolyDP(contour, approx, 0.04 * peri, true);
+
+    let shapeName = "";
+    if (approx.rows === 3) {
+        // It's a triangle
+        let color = new cv.Scalar(0, 255, 0); // Green for triangles
+        shapeName = "Triangle";
+        cv.drawContours(dst, contours, i, color, 1, cv.LINE_8, hierarchy, 100);
+    } else if (approx.rows === 4) {
+        // It's a rectangle
+        let color = new cv.Scalar(255, 0, 0); // Red for rectangles
+        shapeName = "Rectangle";
+        cv.drawContours(dst, contours, i, color, 1, cv.LINE_8, hierarchy, 100);
+    } else if (approx.rows === 5) {
+        // It's a pentagon
+        let color = new cv.Scalar(100, 50, 200); // Blue for pentagons
+        shapeName = "Pentagon";
+        cv.drawContours(dst, contours, i, color, 1, cv.LINE_8, hierarchy, 100);
+    } else {
+        // It's assumed to be a circle
+        let color = new cv.Scalar(0, 0, 255); // Yellow for circles
+        shapeName = "Circle";
+        cv.drawContours(dst, contours, i, color, 1, cv.LINE_8, hierarchy, 100);
+    }
+
+    // Display shape name next to the contour
+    let textPoint = new cv.Point(contour.data32S[0], contour.data32S[1] - 10);
+    cv.putText(dst, shapeName, textPoint, cv.FONT_HERSHEY_SIMPLEX, 0.5, new cv.Scalar(255, 255, 255), 2, cv.LINE_AA);
+
+    approx.delete();
+}
+
+cv.imshow('canvasOutput', dst);
+src.delete();
+dst.delete();
+contours.delete();
+hierarchy.delete();
